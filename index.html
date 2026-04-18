@@ -311,44 +311,103 @@
         return `https://cdn.discordapp.com/embed/avatars/${parseInt(id) % 5}.png`;
     }
 
-    // Загрузка данных Minecraft
-    async function fetchMinecraftData(discordId) {
-        try {
-            const response = await fetch(`/api/get-user?id=${discordId}`);
-            const data = await response.json();
+    // Загрузка данных Minecraft с fallback-системой для аватаров
+async function fetchMinecraftData(discordId) {
+    try {
+        const response = await fetch(`/api/get-user?id=${discordId}`);
+        const data = await response.json();
+        
+        if (data.username) {
+            minecraftUsername = data.username;
+            document.getElementById('minecraftName').textContent = data.username;
             
-            if (data.username) {
-                minecraftUsername = data.username;
-                document.getElementById('minecraftName').textContent = data.username;
-                
-                const uuid = data.uuid;
-                if (uuid) {
-                    document.getElementById('minecraftAvatar').src = 
-                        `https://crafatar.com/avatars/${uuid}?size=48&overlay`;
-                } else {
-                    try {
-                        const mojangRes = await fetch(`https://api.mojang.com/users/profiles/minecraft/${data.username}`);
-                        const mojangData = await mojangRes.json();
-                        if (mojangData.id) {
-                            document.getElementById('minecraftAvatar').src = 
-                                `https://crafatar.com/avatars/${mojangData.id}?size=48&overlay`;
-                        } else {
-                            setDefaultMinecraftAvatar();
-                        }
-                    } catch {
-                        setDefaultMinecraftAvatar();
-                    }
-                }
-            } else {
-                document.getElementById('minecraftName').textContent = 'Не привязан';
-                setDefaultMinecraftAvatar();
-            }
-        } catch (error) {
-            console.error('Ошибка:', error);
-            document.getElementById('minecraftName').textContent = 'Ошибка';
+            // Пытаемся загрузить аватар через цепочку сервисов
+            await loadMinecraftAvatar(data.username, data.uuid);
+        } else {
+            document.getElementById('minecraftName').textContent = 'Не привязан';
             setDefaultMinecraftAvatar();
         }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        document.getElementById('minecraftName').textContent = 'Ошибка';
+        setDefaultMinecraftAvatar();
     }
+}
+
+// Функция загрузки аватара с fallback-механизмом
+async function loadMinecraftAvatar(username, uuid) {
+    const avatarImg = document.getElementById('minecraftAvatar');
+    const cleanUuid = uuid ? uuid.replace(/-/g, '') : null;
+    
+    // Массив сервисов для попытки загрузки
+    const services = [
+        // 1. Minotar (обычно самый стабильный)
+        {
+            url: cleanUuid ? `https://minotar.net/avatar/${cleanUuid}/48` : null,
+            name: 'Minotar'
+        },
+        // 2. MC-Heads (запасной вариант)
+        {
+            url: cleanUuid ? `https://mc-heads.net/avatar/${cleanUuid}/48` : null,
+            name: 'MC-Heads'
+        },
+        // 3. Crafatar (как последняя надежда)
+        {
+            url: cleanUuid ? `https://crafatar.com/avatars/${cleanUuid}?size=48&overlay` : null,
+            name: 'Crafatar'
+        }
+    ].filter(s => s.url !== null); // Убираем сервисы без URL
+    
+    // Если нет UUID, пробуем получить его по нику
+    if (!cleanUuid) {
+        try {
+            const mojangRes = await fetch(`https://api.mojang.com/users/profiles/minecraft/${username}`);
+            if (mojangRes.ok) {
+                const mojangData = await mojangRes.json();
+                if (mojangData.id) {
+                    const newCleanId = mojangData.id.replace(/-/g, '');
+                    // Рекурсивно вызываем себя с новым UUID
+                    await loadMinecraftAvatar(username, mojangData.id);
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('Не удалось получить UUID по нику');
+        }
+        setDefaultMinecraftAvatar();
+        return;
+    }
+    
+    // Пробуем загрузить аватар последовательно
+    let loaded = false;
+    for (const service of services) {
+        if (loaded) break;
+        
+        try {
+            await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    avatarImg.src = service.url;
+                    loaded = true;
+                    resolve();
+                };
+                img.onerror = () => reject(new Error(`Failed to load from ${service.name}`));
+                img.src = service.url;
+                
+                // Таймаут 3 секунды на каждый сервис
+                setTimeout(() => reject(new Error('Timeout')), 3000);
+            });
+        } catch (error) {
+            console.warn(`⚠️ Сервис ${service.name} недоступен:`, error.message);
+        }
+    }
+    
+    // Если ни один сервис не сработал — ставим заглушку
+    if (!loaded) {
+        console.error('❌ Все сервисы аватаров недоступны');
+        setDefaultMinecraftAvatar();
+    }
+}
     
     function setDefaultMinecraftAvatar() {
         document.getElementById('minecraftAvatar').src = 

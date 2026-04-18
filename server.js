@@ -13,6 +13,14 @@ const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// Логирование ВСЕХ запросов
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  if (req.method === 'POST') console.log('Body:', req.body);
+  next();
+});
+
 // Главная страница
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
@@ -25,14 +33,23 @@ app.get('/success.html', (req, res) => {
 
 // ============ DISCORD AUTH ============
 app.get('/api/auth/login', (req, res) => {
+  console.log('🚀 Discord login initiated');
   const url = `https://discord.com/api/oauth2/authorize?client_id=${process.env.DISCORD_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(process.env.REDIRECT_URI)}&scope=identify`;
+  console.log('Redirecting to:', url);
   res.redirect(url);
 });
 
 app.get('/api/auth/callback', async (req, res) => {
+  console.log('📥 Discord callback received');
   const { code } = req.query;
   
+  if (!code) {
+    console.error('❌ No code in callback');
+    return res.status(400).send('No code provided');
+  }
+  
   try {
+    console.log('🔄 Exchanging code for token...');
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       body: new URLSearchParams({
@@ -47,15 +64,14 @@ app.get('/api/auth/callback', async (req, res) => {
     });
 
     const tokenData = await tokenResponse.json();
+    console.log('✅ Token received');
 
-    if (!tokenData.access_token) {
-      throw new Error('Не удалось получить access_token');
-    }
-
+    console.log('🔄 Fetching user data...');
     const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
     const userData = await userResponse.json();
+    console.log('✅ User data received:', userData.username);
 
     let avatarUrl = null;
     if (userData.avatar) {
@@ -65,7 +81,7 @@ app.get('/api/auth/callback', async (req, res) => {
     const avatarParam = avatarUrl ? `&avatar=${encodeURIComponent(avatarUrl)}` : '';
     res.redirect(`/?id=${userData.id}&nick=${userData.username}${avatarParam}`);
   } catch (error) {
-    console.error('Ошибка авторизации:', error);
+    console.error('❌ Discord auth error:', error);
     res.status(500).send('Ошибка авторизации через Discord');
   }
 });
@@ -73,11 +89,13 @@ app.get('/api/auth/callback', async (req, res) => {
 // ============ SPWORLDS API ============
 app.get('/api/get-user', async (req, res) => {
   const { id } = req.query;
+  console.log('🔍 Get user request:', id);
   
   try {
     const authString = `${process.env.SP_CARD_ID}:${process.env.SP_TOKEN}`;
     const base64Auth = Buffer.from(authString).toString('base64');
     
+    console.log('🔄 Fetching from SPWorlds...');
     const response = await fetch(`https://spworlds.ru/api/public/users/${id}`, {
       headers: { 
         'Authorization': `Bearer ${base64Auth}`,
@@ -87,24 +105,34 @@ app.get('/api/get-user', async (req, res) => {
     });
     
     const data = await response.json();
+    console.log('✅ SPWorlds user data:', data);
     res.status(200).json(data);
     
   } catch (error) {
-    console.error('Ошибка получения пользователя:', error);
+    console.error('❌ Get user error:', error);
     res.status(200).json({ username: null });
   }
 });
 
 app.post('/api/create-pay', async (req, res) => {
+  console.log('💳 Create payment request');
+  
   try {
     const { amount, discordId } = req.body;
+    console.log('Amount:', amount, 'Discord ID:', discordId);
 
     const authString = `${process.env.SP_CARD_ID}:${process.env.SP_TOKEN}`;
     const base64Auth = Buffer.from(authString).toString('base64');
 
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.headers['x-forwarded-host'] || req.get('host');
+    const redirectUrl = `${protocol}://${host}/success.html`;
+    const webhookUrl = `${protocol}://${host}/api/webhook`;
+    
+    console.log('Redirect URL:', redirectUrl);
+    console.log('Webhook URL:', webhookUrl);
 
+    console.log('🔄 Creating payment in SPWorlds...');
     const response = await fetch('https://spworlds.ru/api/public/payments', {
       method: 'POST',
       headers: { 
@@ -119,43 +147,70 @@ app.post('/api/create-pay', async (req, res) => {
           count: 1, 
           price: parseInt(amount) 
         }],
-        redirectUrl: `${protocol}://${host}/success.html`,
-        webhookUrl: `${protocol}://${host}/api/webhook`,
+        redirectUrl: redirectUrl,
+        webhookUrl: webhookUrl,
         data: String(discordId)
       })
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+    console.log('SPWorlds response status:', response.status);
+    console.log('SPWorlds response:', responseText);
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('❌ Failed to parse SPWorlds response');
+      throw new Error('Invalid response from SPWorlds');
+    }
+    
+    console.log('✅ Payment created:', data.url);
     res.status(200).json(data);
     
   } catch (error) {
-    console.error('Ошибка создания платежа:', error);
+    console.error('❌ Create payment error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 app.post('/api/webhook', (req, res) => {
+  console.log('📨 Webhook received');
+  
   const signature = req.headers['x-body-hash'];
+  console.log('Signature:', signature);
   
   const hmac = crypto.createHmac('sha256', process.env.SP_TOKEN);
   hmac.update(JSON.stringify(req.body));
   const myHash = hmac.digest('base64');
 
   if (myHash !== signature) {
-    console.error('Неверная подпись вебхука');
+    console.error('❌ Invalid webhook signature');
     return res.status(401).send('Fake');
   }
 
-  console.log('✅ ОПЛАТА ПОДТВЕРЖДЕНА!');
-  console.log('Оплатил:', req.body.payer);
-  console.log('Сумма:', req.body.amount);
+  console.log('✅ PAYMENT CONFIRMED!');
+  console.log('Payer:', req.body.payer);
+  console.log('Amount:', req.body.amount);
   console.log('Discord ID:', req.body.data);
   
   res.status(200).send('OK');
 });
 
+// 404 handler
+app.use((req, res) => {
+  console.log('❌ 404 Not Found:', req.method, req.path);
+  res.status(404).send('Not Found');
+});
+
 // ============ ЗАПУСК ============
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📋 Environment:`, {
+    DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
+    REDIRECT_URI: process.env.REDIRECT_URI,
+    SP_CARD_ID: process.env.SP_CARD_ID ? 'Set' : 'Not set',
+    SP_TOKEN: process.env.SP_TOKEN ? 'Set' : 'Not set'
+  });
 });
