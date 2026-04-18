@@ -222,7 +222,7 @@ app.post('/api/create-pay', async (req, res) => {
       },
       body: JSON.stringify({
         items: [{ 
-          name: "Для шоу Самый Умный Игрок на СПмТВ", 
+          name: "Шоу Самый Умный Игрок | СПмТВ", 
           count: 1, 
           price: parseInt(amount) 
         }],
