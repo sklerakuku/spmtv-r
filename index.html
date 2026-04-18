@@ -12,7 +12,7 @@
     <style>
         @font-face {
             font-family: 'Minecraft';
-            src: url('/minecraft.ttf') format('truetype');
+            src: url('minecraft.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
             font-display: swap;
@@ -44,16 +44,8 @@
             font-weight: 400;
             color: #fff;
             text-align: center;
-            text-transform: uppercase;
             letter-spacing: 2px;
-        }
-        
-        .status {
-            background: #2a2a2a;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
-            border-left: 3px solid #5865f2;
+            font-family: 'Minecraft', 'Courier New', monospace; 
         }
         
         .btn {
@@ -69,6 +61,7 @@
             text-align: center;
             box-sizing: border-box;
             transition: background 0.2s;
+            font-family: 'Minecraft', 'Courier New', monospace; 
         }
         
         .btn:hover {
@@ -85,19 +78,72 @@
         }
         
         .btn-primary {
-            border-color: #43b581;
-            background: #43b581;
+            border-color: #bf49d6;
+            background: #bf49d6;
         }
         
         .btn-primary:hover {
-            background: #3ca374;
+            background: #a248b4;
         }
         
         .btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        .btn-outline {
+            background: transparent;
+            border-color: #5865f2;
+            color: #5865f2;
+        }
+
+        .btn-outline:hover {
+            background: #5865f2;
+            color: #fff;
+        }
         
+        .auth-section {
+            margin-bottom: 20px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-family: 'Minecraft', 'Courier New', monospace; 
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #888;
+            cursor: pointer;
+            text-align: center;
+            font-size: 13px;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        .auth-tab.active {
+            background: #333;
+            color: #fff;
+            border-color: #5865f2;
+        }
+
+        .auth-panel {
+            display: none;
+            padding: 15px;
+            background: #2a2a2a;
+            border: 1px solid #333;
+            font-family: 'Minecraft', 'Courier New', monospace; 
+        }
+
+        .auth-panel.active {
+            display: block;
+        }
+
         .user-row {
             display: flex;
             align-items: center;
@@ -126,7 +172,7 @@
             letter-spacing: 1px;
         }
         
-        .user-value {
+        .user-value, #manualMinecraftNick, #manualDiscordNick {
             font-size: 16px;
             color: #fff;
             margin-top: 3px;
@@ -178,32 +224,66 @@
         
         .radio-group {
             margin: 20px 0;
+            padding: 10px;
         }
         
         .radio-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 0;
-            border-bottom: 1px solid #333;
+            gap: 12px;
+            padding: 10px 0px;
+            border-bottom: 2px solid #444;
+            cursor: pointer;
         }
         
         .radio-item:last-child {
             border-bottom: none;
         }
         
+        /* Пиксельные radio кнопки */
         .radio-item input[type="radio"] {
-            width: 18px;
-            height: 18px;
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #1a1a1a;
+            border: 2px solid #555;
             cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .radio-item input[type="radio"]:checked {
+            background: #bf49d6;
+            border-color: #ffffff;
+            border-width: 1px;
+        }
+        
+        .radio-item input[type="radio"]:checked::after {
+            content: '*';
+            position: absolute;
+            top: 60%;
+            left: 60%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 1px 1px 0 #000;
+            font-family: 'Minecraft', 'Courier New', monospace; 
         }
         
         .radio-item label {
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             color: #e0e0e0;
             text-transform: none;
             letter-spacing: 0;
+            font-family: 'Minecraft', 'Courier New', monospace;
+            flex: 1;
+        }
+
+        .radio-item:hover {
+            background: #333;
         }
         
         .hint {
@@ -225,97 +305,140 @@
             margin: 20px 0;
         }
 
-        .cf-turnstile {
-            margin: 20px 0;
-            display: flex;
-            justify-content: center;
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #bf49d6;
+            color: #fff;
+            font-size: 11px;
+            border-radius: 3px;
+            margin-left: 10px;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>СПмТВ</h2>
+    <h2>СПмТВ - Самый Умный Игрок v.3</h2>
     
-    <div id="statusBlock">
-        <div class="status">
-            🔐 Необходима авторизация
+    <!-- Секция авторизации -->
+    <div class="auth-section">
+        <div class="auth-tabs">
+            <div class="auth-tab active" onclick="switchAuthTab('discord')">Discord</div>
+            <div class="auth-tab" onclick="switchAuthTab('manual')">Ввести вручную</div>
         </div>
-        <a href="/api/auth/login" id="loginBtn" class="btn btn-discord">
-            Войти через Discord
-        </a>
-    </div>
-    
-    <div id="userBlock" style="display:none">
-        <div class="user-row">
-            <img id="discordAvatar" class="user-avatar" src="" alt="DC">
-            <div class="user-info">
-                <div class="user-label">Discord</div>
-                <div class="user-value" id="userName">-</div>
-            </div>
-        </div>
-        
-        <div class="user-row">
-            <img id="minecraftAvatar" class="user-avatar" src="" alt="MC">
-            <div class="user-info">
-                <div class="user-label">Minecraft</div>
-                <div class="user-value" id="minecraftName">Загрузка...</div>
-            </div>
-        </div>
-        
-        <hr>
-        
-        <form id="supportForm" onsubmit="return false;">
-            <div class="form-group">
-                <label>
-                    Предложите ваш вопрос для шоу СУИ и ответ на него
-                    <span class="optional">необязательно</span>
-                </label>
-                <textarea id="question" placeholder="Напишите ваш вопрос... (ответ)"></textarea>
-            </div>
-            
-            <div class="form-group">
-                <label>
-                    К какой категории относится этот вопрос
-                    <span class="optional">необязательно</span>
-                </label>
-                <input type="text" id="category" placeholder="Например: История СПм, Города...">
-            </div>
-            
-            <div class="radio-group">
-                <div class="radio-item">
-                    <input type="radio" id="registerParticipant" name="supportType" value="participant" checked>
-                    <label for="registerParticipant">Зарегистрироваться как участник</label>
-                </div>
-                <div class="radio-item">
-                    <input type="radio" id="justSupport" name="supportType" value="support">
-                    <label for="justSupport">Просто поддержать проект</label>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label>Сумма (АР)</label>
-                <input type="number" id="amount" min="1" max="10000" value="10" required>
-                <div class="hint">от 1 до 10000 АР</div>
-                <div class="error" id="amountError">Введите сумму от 1 до 10000</div>
-            </div>
 
-            <button type="submit" onclick="startPay()" class="btn btn-primary" id="payBtn">
-                Продолжить
-            </button>
-        </form>
+        <!-- Панель Discord -->
+        <div id="discordPanel" class="auth-panel active">
+            <div id="discordNotAuth">
+                <a href="/api/auth/login" class="btn btn-discord">
+                    🔐 Войти через Discord
+                </a>
+                <div class="hint" style="text-align: center; margin-top: 10px;">
+                    После авторизации данные подтянутся автоматически
+                </div>
+            </div>
+            <div id="discordAuth" style="display: none;">
+                <div class="user-row">
+                    <img id="discordAvatar" class="user-avatar" src="" alt="DC">
+                    <div class="user-info">
+                        <div class="user-label">Discord <span class="status-badge">✓ Авторизован</span></div>
+                        <div class="user-value" id="userName">-</div>
+                    </div>
+                </div>
+                <div class="user-row">
+                    <img id="minecraftAvatar" class="user-avatar" src="" alt="MC">
+                    <div class="user-info">
+                        <div class="user-label">Minecraft</div>
+                        <div class="user-value" id="minecraftName">Загрузка...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Панель ручного ввода -->
+        <div id="manualPanel" class="auth-panel">
+            <div class="form-group">
+                <label>Discord ник</label>
+                <input type="text" id="manualDiscordNick" placeholder="Например: User#1234">
+            </div>
+            <div class="form-group">
+                <label>Minecraft ник</label>
+                <input type="text" id="manualMinecraftNick" placeholder="Например: Steve">
+            </div>
+            <div class="hint" style="text-align: center;">
+                Это нужно для связи с вами и для благодарности за помощь в конце выпусков ♥
+            </div>
+        </div>
     </div>
+    
+    <hr>
+    
+    <!-- Форма всегда видна -->
+    <form id="supportForm" onsubmit="return false;">
+        <div class="form-group">
+            <label>
+                Предложите  вопрос для шоу и ответ на него
+                <span class="optional">необязательно</span>
+            </label>
+            <textarea id="question" placeholder="Напишите ваш вопрос... (ответ)"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                К какой категории относится этот вопрос
+                <span class="optional">необязательно</span>
+            </label>
+            <input type="text" id="category" placeholder="Например: История СПм, Города...">
+        </div>
+        
+        <div class="radio-group">
+            <div class="radio-item">
+                <input type="radio" id="registerParticipant" name="supportType" value="participant" checked>
+                <label for="registerParticipant">Зарегистрироваться как участник</label>
+            </div>
+            <div class="radio-item">
+                <input type="radio" id="justSupport" name="supportType" value="support">
+                <label for="justSupport">Просто поддержать проект</label>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Сумма (АР)</label>
+            <input type="number" id="amount" min="1" max="10000" value="10" required>
+            <div class="hint">от 1 до 10000 АР</div>
+            <div class="error" id="amountError">Введите сумму от 1 до 10000</div>
+        </div>
+
+        <button type="submit" onclick="startPay()" class="btn btn-primary" id="payBtn">
+            Продолжить
+        </button>
+    </form>
 </div>
 
 <script>
+    // Глобальные переменные
     let userId = null;
     let userNick = null;
     let minecraftUsername = null;
+    let authMethod = 'discord'; // discord или manual
 
     const urlParams = new URLSearchParams(window.location.search);
     userId = urlParams.get('id');
     userNick = urlParams.get('nick');
     const avatarUrl = urlParams.get('avatar');
+
+    // Переключение вкладок авторизации
+    function switchAuthTab(tab) {
+        authMethod = tab;
+        
+        // Обновляем активные классы
+        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById(tab + 'Panel').classList.add('active');
+    }
 
     // Загрузка аватара Discord
     function loadDiscordAvatar(id, avatar) {
@@ -325,112 +448,91 @@
         return `https://cdn.discordapp.com/embed/avatars/${parseInt(id) % 5}.png`;
     }
 
-    // Загрузка данных Minecraft с fallback-системой для аватаров
-async function fetchMinecraftData(discordId) {
-    try {
-        const response = await fetch(`/api/get-user?id=${discordId}`);
-        const data = await response.json();
-        
-        if (data.username) {
-            minecraftUsername = data.username;
-            document.getElementById('minecraftName').textContent = data.username;
+    // Загрузка данных Minecraft с fallback-системой
+    async function fetchMinecraftData(discordId) {
+        try {
+            const response = await fetch(`/api/get-user?id=${discordId}`);
+            const data = await response.json();
             
-            // Пытаемся загрузить аватар через цепочку сервисов
-            await loadMinecraftAvatar(data.username, data.uuid);
-        } else {
-            document.getElementById('minecraftName').textContent = 'Не привязан';
+            if (data.username) {
+                minecraftUsername = data.username;
+                document.getElementById('minecraftName').textContent = data.username;
+                await loadMinecraftAvatar(data.username, data.uuid);
+            } else {
+                document.getElementById('minecraftName').textContent = 'Не привязан';
+                setDefaultMinecraftAvatar();
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            document.getElementById('minecraftName').textContent = 'Ошибка';
             setDefaultMinecraftAvatar();
         }
-    } catch (error) {
-        console.error('Ошибка:', error);
-        document.getElementById('minecraftName').textContent = 'Ошибка';
-        setDefaultMinecraftAvatar();
     }
-}
 
-// Функция загрузки аватара с fallback-механизмом
-async function loadMinecraftAvatar(username, uuid) {
-    const avatarImg = document.getElementById('minecraftAvatar');
-    const cleanUuid = uuid ? uuid.replace(/-/g, '') : null;
-    
-    // Массив сервисов для попытки загрузки
-    const services = [
-        // MC-Heads 
-        {
-            url: cleanUuid ? `https://mc-heads.net/avatar/${cleanUuid}/48` : null,
-            name: 'MC-Heads'
-        },
-        // Minotar (
-        {
-            url: cleanUuid ? `https://minotar.net/avatar/${cleanUuid}/48` : null,
-            name: 'Minotar'
-        },
-        // rafatar 
-        {
-            url: cleanUuid ? `https://crafatar.com/avatars/${cleanUuid}?size=48&overlay` : null,
-            name: 'Crafatar'
-        }
-    ].filter(s => s.url !== null); // Убираем сервисы без URL
-    
-    // Если нет UUID, пробуем получить его по нику
-    if (!cleanUuid) {
-        try {
-            const mojangRes = await fetch(`https://api.mojang.com/users/profiles/minecraft/${username}`);
-            if (mojangRes.ok) {
-                const mojangData = await mojangRes.json();
-                if (mojangData.id) {
-                    const newCleanId = mojangData.id.replace(/-/g, '');
-                    // Рекурсивно вызываем себя с новым UUID
-                    await loadMinecraftAvatar(username, mojangData.id);
-                    return;
-                }
-            }
-        } catch (e) {
-            console.warn('Не удалось получить UUID по нику');
-        }
-        setDefaultMinecraftAvatar();
-        return;
-    }
-    
-    // Пробуем загрузить аватар последовательно
-    let loaded = false;
-    for (const service of services) {
-        if (loaded) break;
+    // Функция загрузки аватара с fallback-механизмом
+    async function loadMinecraftAvatar(username, uuid) {
+        const avatarImg = document.getElementById('minecraftAvatar');
+        const cleanUuid = uuid ? uuid.replace(/-/g, '') : null;
         
-        try {
-            await new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => {
-                    avatarImg.src = service.url;
-                    loaded = true;
-                    resolve();
-                };
-                img.onerror = () => reject(new Error(`Failed to load from ${service.name}`));
-                img.src = service.url;
-                
-                // Таймаут 3 секунды на каждый сервис
-                setTimeout(() => reject(new Error('Timeout')), 3000);
-            });
-        } catch (error) {
-            console.warn(`⚠️ Сервис ${service.name} недоступен:`, error.message);
+        const services = [
+            { url: cleanUuid ? `https://mc-heads.net/avatar/${cleanUuid}/48` : null, name: 'MC-Heads' },
+            { url: cleanUuid ? `https://minotar.net/avatar/${cleanUuid}/48` : null, name: 'Minotar' },
+            { url: cleanUuid ? `https://crafatar.com/avatars/${cleanUuid}?size=48&overlay` : null, name: 'Crafatar' }
+        ].filter(s => s.url !== null);
+        
+        if (!cleanUuid) {
+            try {
+                const mojangRes = await fetch(`https://api.mojang.com/users/profiles/minecraft/${username}`);
+                if (mojangRes.ok) {
+                    const mojangData = await mojangRes.json();
+                    if (mojangData.id) {
+                        await loadMinecraftAvatar(username, mojangData.id);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('Не удалось получить UUID по нику');
+            }
+            setDefaultMinecraftAvatar();
+            return;
+        }
+        
+        let loaded = false;
+        for (const service of services) {
+            if (loaded) break;
+            
+            try {
+                await new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        avatarImg.src = service.url;
+                        loaded = true;
+                        resolve();
+                    };
+                    img.onerror = () => reject(new Error(`Failed to load from ${service.name}`));
+                    img.src = service.url;
+                    setTimeout(() => reject(new Error('Timeout')), 3000);
+                });
+            } catch (error) {
+                console.warn(`⚠️ Сервис ${service.name} недоступен:`, error.message);
+            }
+        }
+        
+        if (!loaded) {
+            console.error('❌ Все сервисы аватаров недоступны');
+            setDefaultMinecraftAvatar();
         }
     }
-    
-    // Если ни один сервис не сработал — ставим заглушку
-    if (!loaded) {
-        console.error('❌ Все сервисы аватаров недоступны');
-        setDefaultMinecraftAvatar();
-    }
-}
     
     function setDefaultMinecraftAvatar() {
         document.getElementById('minecraftAvatar').src = 
             'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\'%3E%3Crect width=\'48\' height=\'48\' fill=\'%23333\'/%3E%3Ctext x=\'24\' y=\'28\' text-anchor=\'middle\' fill=\'%23666\' font-size=\'12\'%3E?%3C/text%3E%3C/svg%3E';
     }
 
+    // Если авторизован через Discord
     if (userId && userNick) {
-        document.getElementById('statusBlock').style.display = 'none';
-        document.getElementById('userBlock').style.display = 'block';
+        document.getElementById('discordNotAuth').style.display = 'none';
+        document.getElementById('discordAuth').style.display = 'block';
         document.getElementById('userName').textContent = userNick;
         
         if (avatarUrl) {
@@ -464,6 +566,28 @@ async function loadMinecraftAvatar(username, uuid) {
         }
         error.style.display = 'none';
         
+        // Получаем данные в зависимости от метода авторизации
+        let finalDiscordId = userId;
+        let finalDiscordNick = userNick;
+        let finalMinecraftNick = minecraftUsername;
+        
+        if (authMethod === 'manual') {
+            finalDiscordId = 'manual_' + Date.now(); // Генерируем уникальный ID для ручного ввода
+            finalDiscordNick = document.getElementById('manualDiscordNick').value || 'Не указан';
+            finalMinecraftNick = document.getElementById('manualMinecraftNick').value || 'Не указан';
+            
+            if (!finalDiscordNick || finalDiscordNick === 'Не указан') {
+                alert('Пожалуйста, укажите Discord ник');
+                return;
+            }
+        } else {
+            // Discord авторизация
+            if (!userId || !userNick) {
+                alert('Пожалуйста, авторизуйтесь через Discord');
+                return;
+            }
+        }
+        
         const question = document.getElementById('question').value;
         const category = document.getElementById('category').value;
         const supportType = document.querySelector('input[name="supportType"]:checked').value;
@@ -472,31 +596,29 @@ async function loadMinecraftAvatar(username, uuid) {
         payBtn.textContent = 'Создание платежа...';
         
         try {
-            // Сохраняем в localStorage для success.html
             const formData = {
                 question,
                 category,
                 supportType,
                 amount,
-                discordId: userId,
-                discordNick: userNick,
-                minecraftNick: minecraftUsername
+                discordId: finalDiscordId,
+                discordNick: finalDiscordNick,
+                minecraftNick: finalMinecraftNick
             };
             localStorage.setItem('supportFormData', JSON.stringify(formData));
             
-            // Отправляем метаданные на сервер
             const res = await fetch('/api/create-pay', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ 
                     amount, 
-                    discordId: userId,
+                    discordId: finalDiscordId,
                     metadata: {
                         question,
                         category,
                         supportType,
-                        discordNick: userNick,
-                        minecraftNick: minecraftUsername
+                        discordNick: finalDiscordNick,
+                        minecraftNick: finalMinecraftNick
                     }
                 })
             });
