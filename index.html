@@ -341,17 +341,17 @@ async function loadMinecraftAvatar(username, uuid) {
     
     // Массив сервисов для попытки загрузки
     const services = [
-        // 1. Minotar (обычно самый стабильный)
-        {
-            url: cleanUuid ? `https://minotar.net/avatar/${cleanUuid}/48` : null,
-            name: 'Minotar'
-        },
-        // 2. MC-Heads (запасной вариант)
+        // MC-Heads 
         {
             url: cleanUuid ? `https://mc-heads.net/avatar/${cleanUuid}/48` : null,
             name: 'MC-Heads'
         },
-        // 3. Crafatar (как последняя надежда)
+        // Minotar (
+        {
+            url: cleanUuid ? `https://minotar.net/avatar/${cleanUuid}/48` : null,
+            name: 'Minotar'
+        },
+        // rafatar 
         {
             url: cleanUuid ? `https://crafatar.com/avatars/${cleanUuid}?size=48&overlay` : null,
             name: 'Crafatar'
@@ -458,6 +458,7 @@ async function loadMinecraftAvatar(username, uuid) {
         payBtn.textContent = 'Создание платежа...';
         
         try {
+            // Сохраняем в localStorage для success.html
             const formData = {
                 question,
                 category,
@@ -469,12 +470,20 @@ async function loadMinecraftAvatar(username, uuid) {
             };
             localStorage.setItem('supportFormData', JSON.stringify(formData));
             
+            // Отправляем метаданные на сервер
             const res = await fetch('/api/create-pay', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ 
                     amount, 
-                    discordId: userId
+                    discordId: userId,
+                    metadata: {
+                        question,
+                        category,
+                        supportType,
+                        discordNick: userNick,
+                        minecraftNick: minecraftUsername
+                    }
                 })
             });
             

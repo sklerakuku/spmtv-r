@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { google } from 'googleapis';
 
 dotenv.config();
 
@@ -13,7 +14,82 @@ const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Логирование ВСЕХ запросов
+const auth = new google.auth.GoogleAuth({
+  credentials: {
+    client_email: process.env.GOOGLE_CLIENT_EMAIL,
+    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  },
+  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+});
+
+const sheets = google.sheets({ version: 'v4', auth });
+const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID;
+
+// Функция для добавления строки в таблицу
+async function addRowToSheet(data) {
+  try {
+    const response = await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'A:I', // Диапазон колонок (A до I)
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [[
+          new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }),
+          data.discordId || '',
+          data.discordNick || '',
+          data.minecraftNick || '',
+          data.question || '',
+          data.category || '',
+          data.supportType === 'participant' ? 'Участник с вопросом' : 'Поддержка',
+          data.amount || '',
+          data.paymentStatus || 'Ожидание'
+        ]],
+      },
+    });
+    console.log('✅ Данные добавлены в Google Sheet');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Ошибка добавления в Google Sheet:', error.message);
+    throw error;
+  }
+}
+
+// Функция для обновления статуса оплаты
+async function updatePaymentStatus(discordId, amount, status) {
+  try {
+    // Получаем все строки
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'A:I',
+    });
+    
+    const rows = response.data.values || [];
+    
+    // Ищем строку с соответствующим Discord ID и суммой
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const row = rows[i];
+      if (row[1] === discordId && row[7] === amount && row[8] === 'Ожидание') {
+        // Обновляем статус в колонке I (индекс 8)
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `I${i + 1}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[status]]
+          },
+        });
+        console.log(`✅ Статус оплаты обновлён для ${discordId}`);
+        return true;
+      }
+    }
+    console.log('⚠️ Строка для обновления не найдена');
+    return false;
+  } catch (error) {
+    console.error('❌ Ошибка обновления статуса:', error.message);
+    throw error;
+  }
+}
+
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   console.log('Headers:', req.headers);
@@ -121,6 +197,9 @@ app.post('/api/create-pay', async (req, res) => {
     const { amount, discordId } = req.body;
     console.log('Amount:', amount, 'Discord ID:', discordId);
 
+    // Сохраняем данные формы из localStorage (придут в теле запроса)
+    const { question, category, supportType, discordNick, minecraftNick } = req.body.metadata || {};
+
     const authString = `${process.env.SP_CARD_ID}:${process.env.SP_TOKEN}`;
     const base64Auth = Buffer.from(authString).toString('base64');
 
@@ -165,6 +244,25 @@ app.post('/api/create-pay', async (req, res) => {
       throw new Error('Invalid response from SPWorlds');
     }
     
+    // Сохраняем данные в Google Sheet
+    if (data.url) {
+      try {
+        await addRowToSheet({
+          discordId,
+          discordNick: discordNick || userNick,
+          minecraftNick: minecraftNick || 'Не указан',
+          question: question || '',
+          category: category || '',
+          supportType: supportType || 'unknown',
+          amount,
+          paymentStatus: 'Ожидание'
+        });
+      } catch (sheetError) {
+        console.error('⚠️ Не удалось сохранить в Google Sheet:', sheetError);
+        // Не прерываем выполнение, платёж важнее
+      }
+    }
+    
     console.log('✅ Payment created:', data.url);
     res.status(200).json(data);
     
@@ -193,6 +291,13 @@ app.post('/api/webhook', (req, res) => {
   console.log('Payer:', req.body.payer);
   console.log('Amount:', req.body.amount);
   console.log('Discord ID:', req.body.data);
+  
+  // Обновляем статус в Google Sheet
+  updatePaymentStatus(
+    req.body.data, 
+    req.body.amount.toString(), 
+    'Оплачено'
+  ).catch(err => console.error('⚠️ Ошибка обновления статуса:', err));
   
   res.status(200).send('OK');
 });
