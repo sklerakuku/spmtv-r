@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поддержка SPMTV</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: #222;
+            padding: 30px;
+            width: 100%;
+            max-width: 450px;
+            border: 1px solid #333;
+        }
+        
+        h2 {
+            margin: 0 0 25px 0;
+            font-size: 20px;
+            font-weight: 400;
+            color: #fff;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .status {
+            background: #2a2a2a;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            border-left: 3px solid #5865f2;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #444;
+            background: #2a2a2a;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            box-sizing: border-box;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #333;
+        }
+        
+        .btn-discord {
+            border-color: #5865f2;
+            background: #5865f2;
+        }
+        
+        .btn-discord:hover {
+            background: #4752c4;
+        }
+        
+        .btn-primary {
+            border-color: #43b581;
+            background: #43b581;
+        }
+        
+        .btn-primary:hover {
+            background: #3ca374;
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .user-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #2a2a2a;
+            margin-bottom: 10px;
+            border-left: 3px solid #5865f2;
+        }
+        
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            background: #333;
+            border: 1px solid #444;
+        }
+        
+        .user-info {
+            flex: 1;
+        }
+        
+        .user-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .user-value {
+            font-size: 16px;
+            color: #fff;
+            margin-top: 3px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #5865f2;
+        }
+        
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .optional {
+            color: #666;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+        
+        .radio-group {
+            margin: 20px 0;
+        }
+        
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .radio-item:last-child {
+            border-bottom: none;
+        }
+        
+        .radio-item input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .radio-item label {
+            cursor: pointer;
+            font-size: 14px;
+            color: #e0e0e0;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        
+        .hint {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .error {
+            color: #f04747;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        hr {
+            border: none;
+            border-top: 1px solid #333;
+            margin: 20px 0;
+        }
+
+        .cf-turnstile {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>SPMTV</h2>
+    
+    <div id="statusBlock">
+        <div class="status">
+            🔐 Необходима авторизация
+        </div>
+        <a href="/api/auth/login" id="loginBtn" class="btn btn-discord">
+            Войти через Discord
+        </a>
+    </div>
+    
+    <div id="userBlock" style="display:none">
+        <div class="user-row">
+            <img id="discordAvatar" class="user-avatar" src="" alt="DC">
+            <div class="user-info">
+                <div class="user-label">Discord</div>
+                <div class="user-value" id="userName">-</div>
+            </div>
+        </div>
+        
+        <div class="user-row">
+            <img id="minecraftAvatar" class="user-avatar" src="" alt="MC">
+            <div class="user-info">
+                <div class="user-label">Minecraft</div>
+                <div class="user-value" id="minecraftName">Загрузка...</div>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <form id="supportForm" onsubmit="return false;">
+            <div class="form-group">
+                <label>
+                    Предложите ваш вопрос для шоу СУИ 
+                    <span class="optional">необязательно</span>
+                </label>
+                <textarea id="question" placeholder="Опишите вашу идею..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    К какой категории относится этот вопрос
+                    <span class="optional">необязательно</span>
+                </label>
+                <input type="text" id="category" placeholder="Например: История СПм, Города...">
+            </div>
+            
+            <div class="radio-group">
+                <div class="radio-item">
+                    <input type="radio" id="registerParticipant" name="supportType" value="participant" checked>
+                    <label for="registerParticipant">Зарегистрироваться как участник</label>
+                </div>
+                <div class="radio-item">
+                    <input type="radio" id="justSupport" name="supportType" value="support">
+                    <label for="justSupport">Просто поддержать проект</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Сумма (АР)</label>
+                <input type="number" id="amount" min="1" max="10000" value="10" required>
+                <div class="hint">от 1 до 10000 АР</div>
+                <div class="error" id="amountError">Введите сумму от 1 до 10000</div>
+            </div>
+
+            <button type="submit" onclick="startPay()" class="btn btn-primary" id="payBtn">
+                Продолжить
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    let userId = null;
+    let userNick = null;
+    let minecraftUsername = null;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    userId = urlParams.get('id');
+    userNick = urlParams.get('nick');
+    const avatarUrl = urlParams.get('avatar');
+
+    // Загрузка аватара Discord
+    function loadDiscordAvatar(id, avatar) {
+        if (avatar) {
+            return `https://cdn.discordapp.com/avatars/${id}/${avatar}.png?size=64`;
+        }
+        return `https://cdn.discordapp.com/embed/avatars/${parseInt(id) % 5}.png`;
+    }
+
+    // Загрузка данных Minecraft
+    async function fetchMinecraftData(discordId) {
+        try {
+            const response = await fetch(`/api/get-user?id=${discordId}`);
+            const data = await response.json();
+            
+            if (data.username) {
+                minecraftUsername = data.username;
+                document.getElementById('minecraftName').textContent = data.username;
+                
+                const uuid = data.uuid;
+                if (uuid) {
+                    document.getElementById('minecraftAvatar').src = 
+                        `https://crafatar.com/avatars/${uuid}?size=48&overlay`;
+                } else {
+                    try {
+                        const mojangRes = await fetch(`https://api.mojang.com/users/profiles/minecraft/${data.username}`);
+                        const mojangData = await mojangRes.json();
+                        if (mojangData.id) {
+                            document.getElementById('minecraftAvatar').src = 
+                                `https://crafatar.com/avatars/${mojangData.id}?size=48&overlay`;
+                        } else {
+                            setDefaultMinecraftAvatar();
+                        }
+                    } catch {
+                        setDefaultMinecraftAvatar();
+                    }
+                }
+            } else {
+                document.getElementById('minecraftName').textContent = 'Не привязан';
+                setDefaultMinecraftAvatar();
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            document.getElementById('minecraftName').textContent = 'Ошибка';
+            setDefaultMinecraftAvatar();
+        }
+    }
+    
+    function setDefaultMinecraftAvatar() {
+        document.getElementById('minecraftAvatar').src = 
+            'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\'%3E%3Crect width=\'48\' height=\'48\' fill=\'%23333\'/%3E%3Ctext x=\'24\' y=\'28\' text-anchor=\'middle\' fill=\'%23666\' font-size=\'12\'%3E?%3C/text%3E%3C/svg%3E';
+    }
+
+    if (userId && userNick) {
+        document.getElementById('statusBlock').style.display = 'none';
+        document.getElementById('userBlock').style.display = 'block';
+        document.getElementById('userName').textContent = userNick;
+        
+        if (avatarUrl) {
+            document.getElementById('discordAvatar').src = avatarUrl;
+        } else {
+            document.getElementById('discordAvatar').src = 
+                `https://cdn.discordapp.com/embed/avatars/${parseInt(userId) % 5}.png`;
+        }
+        
+        fetchMinecraftData(userId);
+    }
+
+    function validateAmount(amount) {
+        const num = parseInt(amount);
+        return num >= 1 && num <= 10000;
+    }
+
+    document.getElementById('amount').addEventListener('input', function(e) {
+        const error = document.getElementById('amountError');
+        error.style.display = validateAmount(e.target.value) ? 'none' : 'block';
+    });
+
+    async function startPay() {
+        const amount = document.getElementById('amount').value;
+        const payBtn = document.getElementById('payBtn');
+        const error = document.getElementById('amountError');
+        
+        if (!validateAmount(amount)) {
+            error.style.display = 'block';
+            return;
+        }
+        error.style.display = 'none';
+        
+        const question = document.getElementById('question').value;
+        const category = document.getElementById('category').value;
+        const supportType = document.querySelector('input[name="supportType"]:checked').value;
+        
+        payBtn.disabled = true;
+        payBtn.textContent = 'Создание платежа...';
+        
+        try {
+            const formData = {
+                question,
+                category,
+                supportType,
+                amount,
+                discordId: userId,
+                discordNick: userNick,
+                minecraftNick: minecraftUsername
+            };
+            localStorage.setItem('supportFormData', JSON.stringify(formData));
+            
+            const res = await fetch('/api/create-pay', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    amount, 
+                    discordId: userId
+                })
+            });
+            
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.error || 'Ошибка создания платежа');
+            }
+            
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                throw new Error('Не получен URL для оплаты');
+            }
+        } catch (error) {
+            alert('Ошибка: ' + error.message);
+            payBtn.disabled = false;
+            payBtn.textContent = 'Продолжить';
+        }
+    }
+</script>
+
+</body>
+</html>
